@@ -1,6 +1,7 @@
 from cassandra.cluster import Cluster
+from collections import Counter
 
-cluster = Cluster(['10.254.2.62', '10.254.1.217', '10.254.0.206'])
+cluster = Cluster(['10.254.1.242', '10.254.3.9'])
 session = cluster.connect('project2')
 
 # Question 1
@@ -16,16 +17,18 @@ for row in result:
     print(f"Hits from IP 96.32.128.5: {row.count}")
 
 # Question 3
-query = "SELECT path, COUNT(*) FROM web_logs GROUP BY path ALLOW FILTERING;"
+query = "SELECT path FROM web_logs;"
 result = session.execute(query)
-most_accessed_path = max(result, key=lambda x: x.count)
-print(f"Most accessed path: {most_accessed_path.path} with {most_accessed_path.count} hits")
+path_counts = Counter(row.path for row in result)
+most_common_path, count = path_counts.most_common(1)[0]
+print(f"Most accessed path: {most_common_path} with {count} hits")
 
 # Question 4
-query = "SELECT ip, COUNT(*) FROM web_logs GROUP BY ip ALLOW FILTERING;"
+query = "SELECT ip FROM web_logs;"
 result = session.execute(query)
-most_accessing_ip = max(result, key=lambda x: x.count)
-print(f"IP with most accesses: {most_accessing_ip.ip} with {most_accessing_ip.count} accesses")
+ip_counts = Counter(row.ip for row in result)
+most_common_ip, count = ip_counts.most_common(1)[0]
+print(f"IP with most accesses: {most_common_ip} with {count} accesses")
 
 # Question 5
 query = "SELECT COUNT(*) FROM web_logs WHERE user_agent LIKE '%Firefox%';"
@@ -50,12 +53,13 @@ for row in result:
     print(f"Requests <= 404 bytes: {row.count}")
 
 # Question 8
-query = "SELECT ip, COUNT(*) FROM web_logs WHERE status_code = 404 GROUP BY ip ALLOW FILTERING;"
+query = "SELECT ip FROM web_logs WHERE status_code = 404 ALLOW FILTERING;"
 result = session.execute(query)
-ips_with_more_than_ten_404 = [row for row in result if row.count > 10]
-if ips_with_more_than_ten_404:
-    for ip_row in ips_with_more_than_ten_404:
-        print(f"IP: {ip_row.ip} has {ip_row.count} 404 responses")
+ip_404_counts = Counter(row.ip for row in result)
+ips_with_more_than_10_404 = {ip: count for ip, count in ip_404_counts.items() if count > 10}
+if ips_with_more_than_10_404:
+    for ip, count in ips_with_more_than_10_404.items():
+        print(f"IP: {ip} has {count} 404 responses")
 else:
-    max_404_ip = max(result, key=lambda x: x.count)
-    print(f"IP with the most 404 responses: {max_404_ip.ip} with {max_404_ip.count} 404 responses")
+    max_404_ip, max_404_count = ip_404_counts.most_common(1)[0]
+    print(f"IP with the most 404 responses: {max_404_ip} with {max_404_count} 404 responses")
