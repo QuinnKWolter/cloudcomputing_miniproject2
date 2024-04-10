@@ -44,7 +44,8 @@ get_result = session.execute(get_query)
 total_count = total_result.one()[0] if total_result else 0
 get_count = get_result.one()[0] if get_result else 0
 ratio = get_count / total_count if total_count > 0 else 0
-print(f"Ratio of GET requests on 02/Apr/2022: {ratio}")
+percentage = ratio * 100
+print(f"Ratio of GET requests on 02/Apr/2022: {ratio} ({percentage:.2f}%)")
 
 # Question 7
 query = "SELECT COUNT(*) FROM web_logs WHERE response_size <= 404 ALLOW FILTERING;"
@@ -56,9 +57,9 @@ for row in result:
 query = "SELECT ip FROM web_logs WHERE status_code = 404 ALLOW FILTERING;"
 result = session.execute(query)
 ip_404_counts = Counter(row.ip for row in result)
-ips_with_more_than_10_404 = {ip: count for ip, count in ip_404_counts.items() if count > 10}
+ips_with_more_than_10_404 = [(ip, count) for ip, count in ip_404_counts.items() if count > 10]
 if ips_with_more_than_10_404:
-    for ip, count in ips_with_more_than_10_404.items():
+    for ip, count in ips_with_more_than_10_404:
         print(f"IP: {ip} has {count} 404 responses")
 else:
     max_404_ip, max_404_count = ip_404_counts.most_common(1)[0]
